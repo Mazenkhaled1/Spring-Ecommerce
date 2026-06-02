@@ -1,13 +1,11 @@
 package com.codewithmosh.store.controllers;
 
-import com.codewithmosh.store.dtos.CartDto;
-import com.codewithmosh.store.dtos.CartItemDto;
-import com.codewithmosh.store.dtos.CartProductDto;
-import com.codewithmosh.store.dtos.addItemToCartRequest;
+import com.codewithmosh.store.dtos.*;
 import com.codewithmosh.store.entities.Cart;
 import com.codewithmosh.store.entities.CartItem;
 import com.codewithmosh.store.repositories.CartRepository;
 import com.codewithmosh.store.repositories.ProductRepository;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +15,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -118,5 +117,48 @@ public class CartController {
                 totalPrice
         );
         return ResponseEntity.ok(cartDto);
+    }
+
+
+    @PutMapping("/{cartId}/items/{productId}")
+    public ResponseEntity<?> updateItem(
+            @PathVariable("cartId") UUID cartId ,
+            @PathVariable("productId") Long productId,
+           @Valid @RequestBody updateCartItemRequest request
+    )
+    {
+        var cart = cartRepository.getCartWithItems(cartId).orElse(null);
+        if (cart == null) {
+            return ResponseEntity.notFound().build();
+        }
+        var product = productRepository.findById(productId).orElse(null);
+        if (product == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    Map.of("error", "Cart not found")
+            );
+        }
+        var cartItem = cart.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElse(null);
+        if (cartItem == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    Map.of("error", "Product was not found in the cart")
+            );
+
+        }
+        cartItem.setQuantity(request.getQuantity());
+        cartRepository.save(cart);
+        var cartItemDto = new CartItemDto(
+                new CartProductDto(
+                        cartItem.getProduct().getId(),
+                        cartItem.getProduct().getName(),
+                        cartItem.getProduct().getPrice()
+                ),
+                cartItem.getQuantity(),
+                cartItem.getTotalPrice()
+        );
+        return ResponseEntity.ok(cartItemDto);
+
     }
 }
