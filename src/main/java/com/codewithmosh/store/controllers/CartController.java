@@ -16,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -58,7 +59,7 @@ public class CartController {
         if (product == null) {
             return ResponseEntity.badRequest().build();
         }
-        var cartItem = cart.getCartItems().stream()
+        var cartItem = cart.getItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst()
                 .orElse(null) ;
@@ -70,7 +71,7 @@ public class CartController {
             cartItem.setProduct(product);
             cartItem.setQuantity(1);
             cartItem.setCart(cart);
-            cart.getCartItems().add(cartItem);
+            cart.getItems().add(cartItem);
         }
         cartRepository.save(cart);
         var cartItemDto = new CartItemDto(
@@ -83,5 +84,39 @@ public class CartController {
                 cartItem.getTotalPrice()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(cartItemDto) ;
+    }
+
+    @GetMapping("/{cartId}")
+    public ResponseEntity<CartDto> getCart( @PathVariable UUID cartId ) {
+        var cart =  cartRepository.getCartWithItems(cartId).orElse(null);
+        if (cart == null) {
+            return ResponseEntity.notFound().build();
+        }
+        List<CartItemDto> items = cart.getItems()
+                .stream()
+                .map(item -> new CartItemDto(
+                        new CartProductDto(
+                                item.getProduct().getId(),
+                                item.getProduct().getName(),
+                                item.getProduct().getPrice()
+                        ),
+                        item.getQuantity(),
+                        item.getTotalPrice()
+                ))
+                .toList();
+
+
+        BigDecimal totalPrice = cart.getItems()
+                .stream()
+                .map(CartItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+
+        CartDto cartDto = new CartDto(
+                cart.getId(),
+                items,
+                totalPrice
+        );
+        return ResponseEntity.ok(cartDto);
     }
 }
