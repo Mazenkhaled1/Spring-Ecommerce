@@ -9,6 +9,8 @@ spring:
     show-sql: true
   jwt:
     secret: ${JWT_SECRET}
+    accessTokenExpiration: 300 # 5min
+    accessRefreshExpiration: 604800 # 7days
 
 server:
   port: 8081
