@@ -2,6 +2,7 @@ package com.codewithmosh.store.controllers;
 
 
 import com.codewithmosh.store.dtos.*;
+import com.codewithmosh.store.entities.Role;
 import com.codewithmosh.store.entities.User;
 import com.codewithmosh.store.repositories.UserRepository;
 import jakarta.validation.Valid;
@@ -68,6 +69,7 @@ public class UserController {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(Role.USER);
         userRepository.save(user);
 
           var userDto = new  UserDto(user.getId() , user.getName() , user.getEmail());
